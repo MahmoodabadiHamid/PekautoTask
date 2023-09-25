@@ -1,10 +1,129 @@
 import numpy as np
-import matplotlib.pyplot as plt
+import plotly.graph_objs as go
+import plotly.offline as pyo
 
 
-# Provided text data, Columns:
-#time_s, x_mm, y_mm, roll_deg, pitch_deg
-text_data = """
+class Gnss_module:
+    
+    @staticmethod
+    def raw_data_parser(text_data):
+        
+        '''
+            #_________________________________________________ Data Preprocess _______________________________________________________________
+            This method will return a list of lists 
+            each list contains time_s, x_mm, y_mm, roll_deg, pitch_deg
+        '''
+        lines = text_data.strip().split('\n')
+        # Split each line by commas
+        gnss_data = []
+        for line in lines:
+            values = line.split(',')
+            # Convert each value to float and create a sub-list
+            float_values = [float(val.strip()) for val in values]
+            gnss_data.append(float_values)
+        return gnss_data
+
+    
+    @staticmethod
+    def calculate_projection(gnss_data, altitude):
+        '''
+            #_________________________________________________ First Task ___________________________________________________________________
+            # Function to calculate the projection of GNS
+        '''
+        projections = []
+        for time_s, x_mm, y_mm, roll_deg, pitch_deg in gnss_data:
+            try:
+                # Convert degrees to radians
+                roll_rad = np.deg2rad(float(roll_deg))
+                pitch_rad = np.deg2rad(float(pitch_deg))
+
+                # Calculate projection using trigonometry
+                projection_x = x_mm - altitude * np.tan(roll_rad)
+                projection_y = y_mm - altitude * np.tan(pitch_rad)
+
+                projections.append((time_s, projection_x, projection_y))
+            except Exception as e:
+                print(f"Error processing data point: {e}")
+                return False
+
+        return projections
+  
+    
+    @staticmethod
+    def calculate_heading(gnss_data):
+        '''
+            #_________________________________________________ Second Task _________________________________________________________________
+            # Function to calculate vehicle heading
+        '''
+        headings = []
+        for i in range(len(gnss_data) - 1):
+            x1, y1 = gnss_data[i][1], gnss_data[i][2]
+            x2, y2 = gnss_data[i + 1][1], gnss_data[i + 1][2]
+            
+            try:
+                # Calculate heading using atan2
+                heading_rad = np.arctan2(float(y2) - float(y1), float(x2) - float(x1))
+                heading_deg = np.rad2deg(heading_rad)
+            
+                headings.append((gnss_data[i][0], heading_deg))
+            except Exception as e:
+                print(f"Error calculating heading: {e}")
+                return False
+        return headings
+    
+
+    @staticmethod
+    def visualize_data(gnss_data, projections):
+        '''
+            #_________________________________________________ VISUALIZATION PART _________________________________________________________________
+        '''
+        # Extract x and y coordinates
+        x_gnss = [point[1] for point in gnss_data]
+        y_gnss = [point[2] for point in gnss_data]
+
+        x_proj = [round(point[1], 1) for point in projections]
+        y_proj = [round(point[2], 1) for point in projections]
+
+        # Create traces for GNSS and Projection data
+        trace_gnss = go.Scatter(x=[], y=[], mode='lines', name='GNSS Data', marker=dict(size=8, color='blue'))
+        trace_proj = go.Scatter(x=[], y=[], mode='lines', name='Projection Data', marker=dict(size=8, color='red'))
+
+        # Create layout
+        layout = go.Layout(
+            title='Vehicle Movement Animation',
+            xaxis=dict(title='X Coordinate', range=[min(x_gnss + x_proj) - 100, max(x_gnss + x_proj) + 100]),
+            yaxis=dict(title='Y Coordinate', range=[min(y_gnss + y_proj) - 100, max(y_gnss + y_proj) + 100]),
+            showlegend=True,
+        )
+
+        # Create figure
+        fig = go.Figure(data=[trace_gnss, trace_proj], layout=layout)
+
+        # Create animation frames
+        frames = [go.Frame(data=[go.Scatter(x=x_gnss[:frame], y=y_gnss[:frame]),
+                                 go.Scatter(x=x_proj[:frame], y=y_proj[:frame])],
+                           traces=[0, 1],
+                           name=f'Frame {frame + 1}')
+                  for frame in range(len(gnss_data))]
+
+        fig.update(frames=frames)
+
+        # Set animation settings
+        animation_settings = dict(frame=dict(duration=100, redraw=True), fromcurrent=True)
+        fig.update_layout(updatemenus=[dict(type='buttons',
+                                            showactive=False,
+                                            buttons=[dict(label='Play',
+                                                          method='animate',
+                                                          args=[None, animation_settings])])])
+
+        # Show the animated plot in a web browser
+        pyo.plot(fig, filename='cars_movement_animation.html', auto_open=True)
+
+
+
+
+# Provided text data, Columns: time_s, x_mm, y_mm, roll_deg, pitch_deg
+raw_data = """
 1621693264.0155628, 9521, -35074, 3.92, -1.35
 1621693264.1979840, 9450, -34970, 3.93, -1.22
 1621693264.4237902, 9365, -34853, 3.85, -1.24
@@ -37,115 +156,25 @@ text_data = """
 1621693270.2752004, 7301, -31996, 4.06, -1.56
 """
 
-#_________________________________________________ Data Preprocess _______________________________________________________________
-# Split the text into lines
-lines = text_data.strip().split('\n')
-    
-# Split each line by commas and convert to a list of lists
-gnss_data = []
-for line in lines:
-    values = line.split(',')
-    # Convert each value to float and create a sub-list
-    float_values = [float(val.strip()) for val in values]
-    gnss_data.append(float_values)
-#_________________________________________________________________________________________________________________________________
 
 
-# Constants
-installation_height_mm = 1500  # Height of GNSS module above the moving plane in mm
+# Preprocessing the given data
+gnss_data = Gnss_module.raw_data_parser(raw_data)
 
+# Calculate projections
+projections = Gnss_module.calculate_projection(gnss_data, altitude=1500) # FIRST TASK
 
-#_________________________________________________ First Task ___________________________________________________________________
-# Function to calculate the projection of GNSS module post on the moving plane
-def calculate_projection(gnss_data):
-    projections = []
-    for time_s, x_mm, y_mm, roll_deg, pitch_deg in gnss_data:
-        try:
-            # Convert degrees to radians
-            roll_rad = np.deg2rad(float(roll_deg))
-            pitch_rad = np.deg2rad(float(pitch_deg))
-
-            # Calculate projection using trigonometry
-            projection_x = x_mm - installation_height_mm * np.tan(roll_rad)
-            projection_y = y_mm - installation_height_mm * np.tan(pitch_rad)
-
-            projections.append((time_s, projection_x, projection_y))
-        except Exception as e:
-            print(f"Error processing data point: {e}")
-
-    return projections
-#_________________________________________________________________________________________________________________________________
-
-
-
-#_________________________________________________ Second Task _________________________________________________________________
-# Function to calculate vehicle heading
-def calculate_heading(gnss_data):
-    headings = []
-    for i in range(len(gnss_data) - 1):
-        x1, y1 = gnss_data[i][1], gnss_data[i][2]
-        x2, y2 = gnss_data[i + 1][1], gnss_data[i + 1][2]
-        
-        try:
-            # Calculate heading using atan2
-            heading_rad = np.arctan2(float(y2) - float(y1), float(x2) - float(x1))
-            heading_deg = np.rad2deg(heading_rad)
-        
-            headings.append((gnss_data[i][0], heading_deg))
-        except Exception as e:
-            print(f"Error calculating heading: {e}")
-
-    return headings
-#_________________________________________________________________________________________________________________________________
-
-
-# Calculate projections and headings
-projections = calculate_projection(gnss_data)
-headings = calculate_heading(gnss_data)
-
-
-
-import plotly.express as px
-import plotly.graph_objs as go
-from plotly.subplots import make_subplots
+# Calculate headings
+headings = Gnss_module.calculate_heading(gnss_data)                      # SECOND TASK
 
 # Data Visualization
-time_values = [point[0] for point in projections]
-projection_x_values = [point[1] for point in projections]
-projection_y_values = [point[2] for point in projections]
-heading_time_values = [point[0] for point in headings]
-heading_values = [point[1] for point in headings]
+_= Gnss_module.visualize_data(gnss_data, projections)                    # VISUALIZATION OF THE OUTPUTS
 
-# Create subplots
-fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.05)
 
-# Add Projection X and Y to the first subplot
-fig.add_trace(go.Scatter(x=time_values, y=projection_x_values, mode='lines', name='Projection X'), row=1, col=1)
-fig.add_trace(go.Scatter(x=time_values, y=projection_y_values, mode='lines', name='Projection Y'), row=1, col=1)
-fig.update_xaxes(title_text='Time (s)', row=1, col=1)
-fig.update_yaxes(title_text='Projection (mm)', row=1, col=1)
 
-# Add Heading to the second subplot
-fig.add_trace(go.Scatter(x=heading_time_values, y=heading_values, mode='lines', name='Heading'), row=2, col=1)
-fig.update_xaxes(title_text='Time (s)', row=2, col=1)
-fig.update_yaxes(title_text='Heading (degrees)', row=2, col=1)
 
-# Update layout
-fig.update_layout(title='GNSS Data Visualization', showlegend=True, height=600)
 
-# Create animation
-animation_frames = len(time_values)
-frames = [go.Frame(data=[go.Scatter(x=time_values[:i], y=projection_x_values[:i], mode='lines', name='Projection X'),
-                        go.Scatter(x=time_values[:i], y=projection_y_values[:i], mode='lines', name='Projection Y'),
-                        go.Scatter(x=heading_time_values[:i], y=heading_values[:i], mode='lines', name='Heading')],
-                   traces=[0, 1, 2],
-                   name=f'Frame {i+1}')
-          for i in range(animation_frames)]
 
-fig.update(frames=frames)
 
-# Show the animated plot
-fig.show()
 
-"""
-"""
+
