@@ -1,125 +1,4 @@
-import numpy as np
-import plotly.graph_objs as go
-import plotly.offline as pyo
-
-
-class Gnss_module:
-    
-    @staticmethod
-    def raw_data_parser(text_data):
-        
-        '''
-            #_________________________________________________ Data Preprocess _______________________________________________________________
-            This method will return a list of lists 
-            each list contains time_s, x_mm, y_mm, roll_deg, pitch_deg
-        '''
-        lines = text_data.strip().split('\n')
-        # Split each line by commas
-        gnss_data = []
-        for line in lines:
-            values = line.split(',')
-            # Convert each value to float and create a sub-list
-            float_values = [float(val.strip()) for val in values]
-            gnss_data.append(float_values)
-        return gnss_data
-
-    
-    @staticmethod
-    def calculate_projection(gnss_data, altitude):
-        '''
-            #_________________________________________________ First Task ___________________________________________________________________
-            # Function to calculate the projection of GNS
-        '''
-        projections = []
-        for time_s, x_mm, y_mm, roll_deg, pitch_deg in gnss_data:
-            try:
-                # Convert degrees to radians
-                roll_rad = np.deg2rad(float(roll_deg))
-                pitch_rad = np.deg2rad(float(pitch_deg))
-
-                # Calculate projection using trigonometry
-                projection_x = x_mm - altitude * np.tan(roll_rad)
-                projection_y = y_mm - altitude * np.tan(pitch_rad)
-
-                projections.append((time_s, projection_x, projection_y))
-            except Exception as e:
-                print(f"Error processing data point: {e}")
-                return False
-
-        return projections
-  
-    
-    @staticmethod
-    def calculate_heading(gnss_data):
-        '''
-            #_________________________________________________ Second Task _________________________________________________________________
-            # Function to calculate vehicle heading
-        '''
-        headings = []
-        for i in range(len(gnss_data) - 1):
-            x1, y1 = gnss_data[i][1], gnss_data[i][2]
-            x2, y2 = gnss_data[i + 1][1], gnss_data[i + 1][2]
-            
-            try:
-                # Calculate heading using atan2
-                heading_rad = np.arctan2(float(y2) - float(y1), float(x2) - float(x1))
-                heading_deg = np.rad2deg(heading_rad)
-            
-                headings.append((gnss_data[i][0], heading_deg))
-            except Exception as e:
-                print(f"Error calculating heading: {e}")
-                return False
-        return headings
-    
-
-    @staticmethod
-    def visualize_data(gnss_data, projections):
-        '''
-            #_________________________________________________ VISUALIZATION PART _________________________________________________________________
-        '''
-        # Extract x and y coordinates
-        x_gnss = [point[1] for point in gnss_data]
-        y_gnss = [point[2] for point in gnss_data]
-
-        x_proj = [round(point[1], 1) for point in projections]
-        y_proj = [round(point[2], 1) for point in projections]
-
-        # Create traces for GNSS and Projection data
-        trace_gnss = go.Scatter(x=[], y=[], mode='lines', name='GNSS Data', marker=dict(size=8, color='blue'))
-        trace_proj = go.Scatter(x=[], y=[], mode='lines', name='Projection Data', marker=dict(size=8, color='red'))
-
-        # Create layout
-        layout = go.Layout(
-            title='Vehicle Movement Animation',
-            xaxis=dict(title='X Coordinate', range=[min(x_gnss + x_proj) - 100, max(x_gnss + x_proj) + 100]),
-            yaxis=dict(title='Y Coordinate', range=[min(y_gnss + y_proj) - 100, max(y_gnss + y_proj) + 100]),
-            showlegend=True,
-        )
-
-        # Create figure
-        fig = go.Figure(data=[trace_gnss, trace_proj], layout=layout)
-
-        # Create animation frames
-        frames = [go.Frame(data=[go.Scatter(x=x_gnss[:frame], y=y_gnss[:frame]),
-                                 go.Scatter(x=x_proj[:frame], y=y_proj[:frame])],
-                           traces=[0, 1],
-                           name=f'Frame {frame + 1}')
-                  for frame in range(len(gnss_data))]
-
-        fig.update(frames=frames)
-
-        # Set animation settings
-        animation_settings = dict(frame=dict(duration=100, redraw=True), fromcurrent=True)
-        fig.update_layout(updatemenus=[dict(type='buttons',
-                                            showactive=False,
-                                            buttons=[dict(label='Play',
-                                                          method='animate',
-                                                          args=[None, animation_settings])])])
-
-        # Show the animated plot in a web browser
-        pyo.plot(fig, filename='cars_movement_animation.html', auto_open=True)
-
-
+from modules import Gnss_module
 
 
 # Provided text data, Columns: time_s, x_mm, y_mm, roll_deg, pitch_deg
@@ -168,7 +47,15 @@ projections = Gnss_module.calculate_projection(gnss_data, altitude=1500) # FIRST
 headings = Gnss_module.calculate_heading(gnss_data)                      # SECOND TASK
 
 # Data Visualization
-_= Gnss_module.visualize_data(gnss_data, projections)                    # VISUALIZATION OF THE OUTPUTS
+_= Gnss_module.visualize_projection(projections)                          # VISUALIZATION OF THE OUTPUTS
+_= Gnss_module.visualize_headings(gnss_data, headings, projections)       # VISUALIZATION OF THE OUTPUTS
+
+
+
+
+
+
+
 
 
 

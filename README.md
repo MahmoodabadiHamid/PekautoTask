@@ -2,95 +2,26 @@ Pekauto Test Task Documentation
 Hamid Mahoodabadi
 Mahmoodabadihamid@gmail.com
 
-Introduction
+## Introduction
 
 The GNSS (Global Navigation Satellite System) module is a collection of functions designed to process and analyze raw GNSS data. It includes tasks such as parsing raw GNSS data, calculating the projection of GNSS points onto a moving plane, determining vehicle heading, and visualizing the GNSS data and its projection.
 
-Functions definition:
+## Functions definition:
 
-'raw_data_parser' Method
-'''
-@staticmethod
-def raw_data_parser(text_data):
-‘''
+1. **Raw Data Parsing**: The code includes a `raw_data_parser` method that parses raw GNSS data from a text format and converts it into a list of lists. Each sub-list contains `time_s`, `x_mm`, `y_mm`, `roll_deg`, and `pitch_deg` values.
 
-This method is responsible for parsing raw GNSS data provided as text. The input is a string containing comma-separated values, with each line representing a data point. The method returns a list of lists, where each inner list contains the following information for a data point:
+2. **Projection Calculation**: The `calculate_projection` method calculates the projection of GNSS data onto a 3D space. It takes the parsed GNSS data and an altitude value as input and returns a list of lists containing `time_s`, `x_proj_mm`, `y_proj_mm`, and `z_proj_mm`.
 
-1. 'time_s': Time in seconds.
-2. 'x_mm': X-coordinate in millimeters.
-3. 'y_mm': Y-coordinate in millimeters.
-4. 'roll_deg': Roll angle in degrees.
-5. 'pitch_deg': Pitch angle in degrees.
+3. **Heading Calculation**: The `calculate_heading` method calculates vehicle headings based on GNSS data. It takes the parsed GNSS data and computes the headings in degrees.
 
-'calculate_projection' Method
+4. **Visualization**:
+   - `visualize_projection`: Creates a 3D scatter plot of GNSS data projections.
+   - `visualize_headings`: Creates a 2D scatter plot of GNSS data points with headings drawn as red lines and optionally adds projected points as a red line.
 
-'''
-@staticmethod
-def calculate_projection(gnss_data, altitude):
-'''
+## Usage
 
-This method calculates the projection of GNSS points onto a moving plane. It takes in the parsed GNSS data as well as an altitude value. The altitude represents the height above the ground plane at which the projections are to be calculated.
+1. Define your raw GNSS data in the `raw_data` variable using the specified format.
 
-For each data point in the GNSS data, the method performs the following calculations:
+2. Initialize an instance of the `Gnss_module` class.
 
-1. Converts the roll and pitch angles from degrees to radians.
-2. Uses trigonometry to calculate the X and Y coordinates of the projection by taking into account the altitude, roll angle, and pitch angle.
-
-The method returns a list of tuples, where each tuple contains the following information for a 
-
-data point:
-1. 'time_s': Time in seconds.
-2. 'projection_x': X-coordinate of the projection.
-3. 'projection_y': Y-coordinate of the projection.
-
-
-calculate_heading' Method
-'''
-@staticmethod
-def calculate_heading(gnss_data):
-'''
-
-This method calculates the heading of the vehicle based on the GNSS data. Heading represents the direction in which the vehicle is moving. It takes the parsed GNSS data as input.
-
-For each consecutive pair of data points in the GNSS data, the method calculates the heading using the 'atan2' function and converts it from radians to degrees. The heading is the angle between the X-axis and the direction in which the vehicle is moving.
-
-The method returns a list of tuples, where each tuple contains the following information for a 
-
-data point:
-1. 'time_s': Time in seconds.
-2. 'heading_deg': Vehicle heading in degrees.
-
-'visualize_data' Method
-'''
-@staticmethod
-def visualize_data(gnss_data, projections):
-'''
-
-This method generates an animated visualization of the GNSS data and its projections using Plotly. It takes in the GNSS data and the calculated projections as input.
-
-The visualization includes the following components:
-- A line plot of the GNSS data points (blue).
-- A line plot of the projection points (red).
-- Animation frames that show the movement of the points over time.
-
-The visualization is displayed in a web browser, and it allows you to play an animation of the vehicle's movement.
-
-
-Example Usage
-After defining the GNSS data in raw format and preprocessing it using the 'raw_data_parser' method, you can perform the following tasks:
-
-1. Calculate projections using 'calculate_projection'.
-2. Calculate vehicle headings using 'calculate_heading'.
-3. Visualize the GNSS data and projections using 'visualize_data'.
-
-
-Example Output
-The output of this code is an interactive animation that visually represents the movement of the vehicle based on GNSS data and its projections.
-
-
-Notes
-- The code includes error handling to handle exceptions that may occur during calculations.
-- Ensure that you have the required libraries ('numpy', 'plotly’) installed to run this code successfully.
-
-By using this GNSS module, you can efficiently process and visualize GNSS data for vehicle tracking and analysis.
-
+3. Use the class methods to process and visualize your GNSS data as needed. The provided example code demonstrates how to parse the data, calculate projections, calculate headings, and visualize the results.
