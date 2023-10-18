@@ -47,6 +47,7 @@ projections = Gnss_module.calculate_projection(gnss_data, altitude=1500) # FIRST
 headings = Gnss_module.calculate_heading(gnss_data)                      # SECOND TASK
 
 # Data Visualization
+_= Gnss_module.visualize_pitch_and_roll(gnss_data)                      # VISUALIZATION OF THE INPUT PARAMETERS
 _= Gnss_module.visualize_projection(projections)                          # VISUALIZATION OF THE OUTPUTS
 _= Gnss_module.visualize_headings(gnss_data, headings, projections)       # VISUALIZATION OF THE OUTPUTS
 
